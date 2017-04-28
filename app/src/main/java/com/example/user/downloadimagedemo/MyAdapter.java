@@ -10,53 +10,75 @@ import android.util.LruCache;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
 import android.widget.ImageView;
+
+import com.bumptech.glide.Glide;
+import com.squareup.picasso.MemoryPolicy;
+import com.squareup.picasso.NetworkPolicy;
+import com.squareup.picasso.Picasso;
 
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Created by User on 24/04/2017.
  */
 
-public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
+public class MyAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    private List<String> list;
+    private List listAll;
     private LayoutInflater mLayoutInflater;
     private Context mContext;
 
-    public MyAdapter(Context context, List<String> list) {
+    public MyAdapter(Context context, List listAll) {
         this.mContext = context;
         mLayoutInflater = LayoutInflater.from(context);
-        this.list = list;
+        this.listAll = listAll;
     }
 
     @Override
-    public MyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View item = mLayoutInflater.inflate(R.layout.recycle_view_item, parent, false);
-        return new MyViewHolder(item);
+        View item2 = mLayoutInflater.inflate(R.layout.second_view_item, parent, false);
+
+        if (viewType == 0) {
+            return new MyViewHolder(item);
+        } else {
+            return new SecondViewHolder(item2);
+        }
     }
 
     @Override
-    public void onBindViewHolder(MyViewHolder holder, int position) {
-        String url = list.get(position);
-        new DownloadImageTask(holder.imgView).execute(url);
-        LruCache<String, Bitmap> cache = new LruCache<>(4096);
+    public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+        if (holder instanceof MyViewHolder) {
+            ((MyViewHolder) holder).loadImage((String) listAll.get(position));
+        }
+
+        if (holder instanceof SecondViewHolder) {
+            ((SecondViewHolder) holder).isChecked((Boolean) listAll.get(position));
+        }
+
+        //     new DownloadImageTask(holder.imgView).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,url);
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        if (position % 2 == 0) {
+            return 0;
+        } else {
+            return 1;
+        }
     }
 
     @Override
     public int getItemCount() {
-        return list.size();
+        return listAll.size();
     }
 
-    public ImageView getImageView() {
-        View item = mLayoutInflater.inflate(R.layout.recycle_view_item, null, false);
-        MyViewHolder myViewHolder = new MyViewHolder(item);
-
-        return myViewHolder.imgView;
-    }
 
     class MyViewHolder extends RecyclerView.ViewHolder {
 
@@ -66,34 +88,27 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
             super(itemView);
             imgView = (ImageView) itemView.findViewById(R.id.imgItem);
         }
+
+        public void loadImage(String url) {
+//            Picasso.with(mContext).load(url).networkPolicy(NetworkPolicy.OFFLINE).into(imgView);
+            ImageLoader.getInstance().loadImage(url, imgView);
+        }
     }
 
-    class DownloadImageTask extends AsyncTask<String, Bitmap, Bitmap> {
+    class SecondViewHolder extends RecyclerView.ViewHolder {
 
-        private ImageView imageView;
+        private CheckBox cb;
 
-        public DownloadImageTask(ImageView imageView) {
-            this.imageView = imageView;
+        public SecondViewHolder(View itemView) {
+            super(itemView);
+            cb = (CheckBox) itemView.findViewById(R.id.cb);
         }
 
-        @Override
-        protected Bitmap doInBackground(String... params) {
-            String urldisplay = params[0];
-            Bitmap bitmap = null;
-            try {
-                InputStream in = new java.net.URL(urldisplay).openStream();
-                bitmap = BitmapFactory.decodeStream(in);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return bitmap;
-        }
-
-        @Override
-        protected void onPostExecute(Bitmap bitmap) {
-            if (bitmap != null) {
-                imageView.setImageBitmap(bitmap);
-                System.out.println("đã tải xong");
+        public void isChecked(boolean isChecked) {
+            if (isChecked) {
+                cb.setChecked(true);
+            } else {
+                cb.setChecked(false);
             }
         }
     }
